@@ -2,8 +2,13 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
   S3ClientConfig,
   PutObjectCommandInput,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+  ListObjectsV2CommandOutput,
+  NoSuchKey,
 } from "@aws-sdk/client-s3";
 import { NodeJsRuntimeStreamingBlobPayloadOutputTypes } from "@smithy/types";
 
@@ -16,6 +21,12 @@ const streamToBuffer = async (stream: NodeJS.ReadableStream) => {
     stream.on("error", reject);
   });
 };
+
+const isNoSuchKeyError = (error: unknown): error is NoSuchKey =>
+  typeof error === "object" &&
+  error !== null &&
+  "Code" in error &&
+  error.Code === "NoSuchKey";
 
 export default class S3LocalStorage {
   private s3Client: S3Client;
@@ -55,16 +66,58 @@ export default class S3LocalStorage {
       const value = valueBuffer.toString("utf-8");
       return value;
     } catch (error: unknown) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "Code" in error &&
-        error?.Code === "NoSuchKey"
-      ) {
-        return undefined;
+      if (isNoSuchKeyError(error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  async removeItem(key: string) {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.s3Client.send(command);
+    } catch (error: unknown) {
+      if (isNoSuchKeyError(error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  async clear() {
+    let isTruncated: boolean = true;
+    let continuationToken: string | undefined = undefined;
+
+    while (isTruncated) {
+      const listCommand = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+        ContinuationToken: continuationToken,
+      });
+      const listResult: ListObjectsV2CommandOutput =
+        await this.s3Client.send(listCommand);
+
+      // Step 2: Delete objects in batches
+      if (listResult.Contents && listResult.Contents.length > 0) {
+        const listResultObjects = listResult.Contents.map((object) => ({
+          Key: object.Key,
+        }));
+        const deleteCommand = new DeleteObjectsCommand({
+          Bucket: this.bucketName,
+          Delete: {
+            Objects: listResultObjects,
+          },
+        });
+        await this.s3Client.send(deleteCommand);
       }
 
-      throw error;
+      // Check if there are more objects to list
+      isTruncated = listResult.IsTruncated ?? false;
+      continuationToken = listResult.NextContinuationToken;
     }
   }
 }
