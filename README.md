@@ -1,6 +1,6 @@
 # s3-localstorage
 
-Small and simple `localStorage`-compatible adaptor S3-compatible storages (wrapper around `@aws-sdk/client-s3`).
+Small and simple `localStorage`-compatible adaptor for S3-compatible storages (wrapper around `@aws-sdk/client-s3`).
 
 ## Installation
 
