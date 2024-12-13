@@ -1,0 +1,25 @@
+{
+  "name": "s3-localstorage",
+  "description": "Small and simple localStorage-compatible adaptor for S3-compatible storages",
+  "version": "1.0.0",
+  "author": "nezort11",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nezort11/s3-localstorage.git"
+  },
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npx tsc --build",
+    "release": "npm run build && npm publish --access public"
+  },
+  "keywords": [],
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.709.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
