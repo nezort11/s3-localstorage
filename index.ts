@@ -35,6 +35,8 @@ export default class S3LocalStorage {
   constructor(bucketName: string, clientOpts?: S3ClientConfig) {
     // Creating a client for Object Storage (explicit configuration from env)
     this.s3Client = new S3Client({
+      region: process.env.AWS_REGION,
+      endpoint: process.env.AWS_S3_ENDPOINT,
       ...clientOpts,
     });
 
