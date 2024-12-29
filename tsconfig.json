@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
+    "target": "ES2019", // Nodejs 14+
+    "module": "CommonJS",
     "declaration": true,
     "outDir": "./dist",
     "strict": true,
