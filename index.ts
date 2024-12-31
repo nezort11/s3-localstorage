@@ -43,7 +43,11 @@ export default class S3LocalStorage {
     this.bucketName = bucketName;
   }
 
-  async setItem(key: string, value: string, opts?: PutObjectCommandInput) {
+  async setItem(
+    key: string,
+    value: string,
+    opts?: Omit<PutObjectCommandInput, "Bucket" | "Key" | "Body">
+  ) {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
