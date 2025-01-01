@@ -10,6 +10,8 @@ import {
   ListObjectsV2CommandOutput,
   NoSuchKey,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { RequestPresigningArguments } from "@smithy/types";
 import { NodeJsRuntimeStreamingBlobPayloadOutputTypes } from "@smithy/types";
 
 // Array.fromAsync polyfill https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fromAsync
@@ -82,6 +84,18 @@ export default class S3LocalStorage {
       }
       throw error;
     }
+  }
+
+  async getItemUrl(key: string, opts?: RequestPresigningArguments) {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+    const objectSignedUrl = await getSignedUrl(this.s3Client, command, {
+      expiresIn: 3600, // 1h
+      ...opts,
+    });
+    return objectSignedUrl;
   }
 
   async removeItem(key: string) {
