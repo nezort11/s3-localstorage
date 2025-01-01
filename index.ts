@@ -45,20 +45,20 @@ export default class S3LocalStorage {
 
   async setItem(
     key: string,
-    value: string,
+    value: PutObjectCommandInput["Body"],
     opts?: Omit<PutObjectCommandInput, "Bucket" | "Key" | "Body">
   ) {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       Body: value,
-      ContentType: "text/plain",
+      ...(typeof value === "string" && { ContentType: "text/plain" }),
       ...opts,
     });
     await this.s3Client.send(command);
   }
 
-  async getItem(key: string) {
+  async getItem(key: string, encoding: BufferEncoding | null = "utf8") {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
@@ -69,8 +69,13 @@ export default class S3LocalStorage {
       const valueBody =
         valueData.Body as NodeJsRuntimeStreamingBlobPayloadOutputTypes;
       const valueBuffer = await streamToBuffer(valueBody);
-      const value = valueBuffer.toString("utf-8");
-      return value;
+
+      if (encoding === null) {
+        return valueBuffer;
+      } else {
+        const value = valueBuffer.toString(encoding);
+        return value;
+      }
     } catch (error: unknown) {
       if (isNoSuchKeyError(error)) {
         return;
