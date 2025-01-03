@@ -35,10 +35,12 @@ export default class S3LocalStorage {
   private bucketName: string;
 
   constructor(bucketName: string, clientOpts?: S3ClientConfig) {
+    const region = process.env.AWS_REGION;
+    const endpoint = process.env.AWS_S3_ENDPOINT;
     // Creating a client for Object Storage (explicit configuration from env)
     this.s3Client = new S3Client({
-      region: process.env.AWS_REGION,
-      endpoint: process.env.AWS_S3_ENDPOINT,
+      ...(region && { region: region }),
+      ...(endpoint && { endpoint: endpoint }),
       ...clientOpts,
     });
 
@@ -86,7 +88,10 @@ export default class S3LocalStorage {
     }
   }
 
-  async getItemUrl(key: string, opts?: RequestPresigningArguments) {
+  // Generate presigned url for S3 object
+  // https://docs.aws.amazon.com/code-library/latest/ug/s3_example_s3_Scenario_PresignedUrl_section.html
+  // NOTE: works well only for AWS S3
+  async getItemLink(key: string, opts?: RequestPresigningArguments) {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
@@ -96,6 +101,26 @@ export default class S3LocalStorage {
       ...opts,
     });
     return objectSignedUrl;
+  }
+
+  // Return a public link to S3 object
+  // e.g. https://storage.yandexcloud.net/ytdl-service/2KX6ESUP4cy-q7D8bouYL
+  async getItemPublicLink(key: string) {
+    const customEndpoint = this.s3Client.config.endpoint;
+    if (customEndpoint) {
+      const endpoint = await customEndpoint();
+
+      const endpointUrl = new URL(
+        `${endpoint.protocol}://${endpoint.hostname}`
+      );
+      if (endpoint.port) {
+        endpointUrl.port = `${endpoint.port}`;
+      }
+      endpoint.path = `${this.bucketName}/${key}`;
+      return endpointUrl.href;
+    } else {
+      return;
+    }
   }
 
   async removeItem(key: string) {

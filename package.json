@@ -1,7 +1,7 @@
 {
   "name": "s3-localstorage",
   "description": "Small and simple localStorage-compatible adaptor for S3-compatible storages",
-  "version": "1.1.4",
+  "version": "1.1.6",
   "author": "nezort11",
   "repository": {
     "type": "git",
