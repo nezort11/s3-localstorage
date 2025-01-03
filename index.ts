@@ -111,12 +111,12 @@ export default class S3LocalStorage {
       const endpoint = await customEndpoint();
 
       const endpointUrl = new URL(
-        `${endpoint.protocol}://${endpoint.hostname}`
+        `${endpoint.protocol}//${endpoint.hostname}`
       );
       if (endpoint.port) {
         endpointUrl.port = `${endpoint.port}`;
       }
-      endpoint.path = `${this.bucketName}/${key}`;
+      endpointUrl.pathname = `${this.bucketName}/${key}`;
       return endpointUrl.href;
     } else {
       return;
