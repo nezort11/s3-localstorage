@@ -33,8 +33,8 @@ const isNoSuchKeyError = (error: unknown): error is NoSuchKey =>
 type CommandType = "GET" | "PUT" | "DELETE";
 
 export default class S3LocalStorage {
-  private s3Client: S3Client;
-  private bucketName: string;
+  public s3Client: S3Client;
+  public bucketName: string;
 
   constructor(bucketName: string, clientOpts?: S3ClientConfig) {
     const region = process.env.AWS_REGION;
