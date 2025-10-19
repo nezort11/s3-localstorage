@@ -30,6 +30,8 @@ const isNoSuchKeyError = (error: unknown): error is NoSuchKey =>
   "Code" in error &&
   error.Code === "NoSuchKey";
 
+type CommandType = "GET" | "PUT" | "DELETE";
+
 export default class S3LocalStorage {
   private s3Client: S3Client;
   private bucketName: string;
@@ -91,11 +93,22 @@ export default class S3LocalStorage {
   // Generate presigned url for S3 object
   // https://docs.aws.amazon.com/code-library/latest/ug/s3_example_s3_Scenario_PresignedUrl_section.html
   // NOTE: works well only for AWS S3
-  async getItemLink(key: string, opts?: RequestPresigningArguments) {
-    const command = new PutObjectCommand({
+  async getItemLink(
+    key: string,
+    commandType: CommandType = "GET",
+    opts?: RequestPresigningArguments
+  ) {
+    const commandInput = {
       Bucket: this.bucketName,
       Key: key,
-    });
+    };
+    const command = {
+      GET: new GetObjectCommand(commandInput),
+      PUT: new PutObjectCommand(commandInput),
+      DELETE: new DeleteObjectCommand(commandInput),
+    }[commandType];
+
+    // new GetObjectCommand({ Bucket: this.bucketName, Key:key})
     const objectSignedUrl = await getSignedUrl(this.s3Client, command, {
       expiresIn: 3600, // 1h
       ...opts,
@@ -136,6 +149,31 @@ export default class S3LocalStorage {
         return;
       }
       throw error;
+    }
+  }
+
+  async *list() {
+    let isTruncated: boolean = true;
+    let continuationToken: string | undefined = undefined;
+
+    while (isTruncated) {
+      const listCommand = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+        ContinuationToken: continuationToken,
+      });
+      const listResult: ListObjectsV2CommandOutput =
+        await this.s3Client.send(listCommand);
+
+      if (listResult.Contents && listResult.Contents.length > 0) {
+        for (const object of listResult.Contents) {
+          if (object.Key) {
+            yield object.Key;
+          }
+        }
+      }
+
+      isTruncated = listResult.IsTruncated ?? false;
+      continuationToken = listResult.NextContinuationToken;
     }
   }
 
